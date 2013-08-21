@@ -1,0 +1,159 @@
+#!/usr/bin/php
+<?php
+array_shift($argv);
+
+$remote_out = NULL;
+$repo_out = trim(array_pop($argv));
+if( strpos($repo_out, '/') !== FALSE ){
+  list($remote_out, $repo_out) = explode('/', $repo_out);
+}
+
+if( $argc < 3 )
+{
+  echo 'Usage : '.PHP_EOL;
+  echo ' git push-pull in out'.PHP_EOL;
+  echo ' git push-pull in [in [in [in ...]]] out'.PHP_EOL;
+  echo '    in, out : branch, remote/branch, remote/branch:hash'.PHP_EOL;
+  die();
+}
+
+//Fetch Args
+$t_remotes = Array();
+foreach($argv as $arg)
+{
+  $remote = NULL;
+  $repo = trim($arg);
+  if( strpos($arg, '/') !== FALSE ){
+    list($remote, $repo) = explode('/', trim($arg));
+  }
+  $t_repos_commits = explode(':', $repo);
+  $repo = array_shift($t_repos_commits);
+
+  if( !array_key_exists($remote, $t_remotes)){
+    $t_remotes[$remote] = Array();
+  }
+
+  if( !array_key_exists($repo, $t_remotes[$remote]) ){
+   $t_remotes[$remote][$repo] = Array();
+  }
+
+  foreach($t_repos_commits as $t_repos_commit){
+    $t_remotes[$remote][$repo][] = $t_repos_commit;
+  }
+}
+
+
+//Fetch remote repository
+foreach($t_remotes as $remote => $t_repo)
+{
+  if($remote && $t_repo)
+  {
+    //Check if the remote repo exists and update refs
+    $return_var = NULL;
+    git('git fetch '.$remote, $return_var);
+    if($return_var){
+      error('Remote Repository '.$remote.' cannot be fetched.');
+    }
+  }
+}
+
+
+$return_var = NULL;
+//Checkout local output repo
+git('git checkout '.$repo_out, $return_var);
+if($return_var)
+{
+  if($remote_out)
+  {
+    git('git checkout -b '.$repo_out.' '.$remote_out.'/'.$repo_out, $return_var);
+    if($return_var){
+      error('Cannot checkout output repository!');
+    }
+  }
+  else{
+    error('Cannot checkout output repository!');
+  }
+}
+
+$return_var = NULL;
+foreach($t_remotes as $remote => $t_repo)
+{
+  foreach($t_repo as $repo => $commits)
+  {
+    if( !$commits )
+    {
+      //Merge Branch
+      git('git merge '.($remote?$remote.'/'.$repo:$repo), $return_var);  
+      if($return_var){
+        error('Cannot merge '.$repo.' locally');
+      }
+    }
+    else 
+    {
+      foreach($commits as $commit)
+      {
+        //Use cherry pick
+        git('git cherry-pick '.$commit, $return_var);
+        if($return_var){
+          error('Cannot cherry-pick '.$commit);
+        }
+      }
+    }
+  }
+}
+
+//Push remote output
+$return_var = NULL;
+if($remote_out)
+{
+  git('git push '.$remote_out.' '.$repo_out, $return_var);
+  if($return_var){
+    error('Cannot push output repository!');
+  }
+}
+
+die( termcolored('Great Success!', 'GREEN').PHP_EOL );
+
+function git($git, &$return_var)
+{
+  echo termcolored($git, 'YELLOW').PHP_EOL;
+  return system($git, $return_var);
+}
+
+function error($s)
+{
+  die(termcolored($s, 'RED').PHP_EOL);
+}
+
+function termcolored($text, $color="NORMAL", $back=1)
+{
+  $_colors = array(
+        'LIGHT_RED'      => "[1;31m",
+        'LIGHT_GREEN'     => "[1;32m",
+        'YELLOW'         => "[1;33m",
+        'LIGHT_BLUE'     => "[1;34m",
+        'MAGENTA'     => "[1;35m",
+        'LIGHT_CYAN'     => "[1;36m",
+        'WHITE'         => "[1;37m",
+        'NORMAL'         => "[0m",
+        'BLACK'         => "[0;30m",
+        'RED'         => "[0;31m",
+        'GREEN'         => "[0;32m",
+        'BROWN'         => "[0;33m",
+        'BLUE'         => "[0;34m",
+        'CYAN'         => "[0;36m",
+        'BOLD'         => "[1m",
+        'UNDERSCORE'     => "[4m",
+        'REVERSE'     => "[7m",
+  );    
+  $out = $_colors["$color"];
+  if($out == ""){ 
+    $out = "[0m"; 
+  }
+  if($back){
+    return chr(27)."$out$text".chr(27)."[0m";
+  }
+  else{
+    return chr(27)."$out$text".chr(27).chr(27)."[0m";
+  }
+}
