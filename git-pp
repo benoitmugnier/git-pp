@@ -11,8 +11,8 @@ if( strpos($repo_out, '/') !== FALSE ){
 if( $argc < 3 )
 {
   echo 'Usage : '.PHP_EOL;
-  echo ' git push-pull in out'.PHP_EOL;
-  echo ' git push-pull in [in [in [in ...]]] out'.PHP_EOL;
+  echo ' git pp in out'.PHP_EOL;
+  echo ' git pp in [in [in [in ...]]] out'.PHP_EOL;
   echo '    in, out : branch, remote/branch, remote/branch:hash'.PHP_EOL;
   die();
 }
