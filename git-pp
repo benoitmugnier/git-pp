@@ -67,11 +67,23 @@ if($return_var)
   {
     git('git checkout -b '.$repo_out.' '.$remote_out.'/'.$repo_out, $return_var);
     if($return_var){
-      error('Cannot checkout output repository!');
+      reset($t_remotes);
+      list($remote_in, $t_repo_in) = each($t_remotes);
+      list($repo_in, ) = each($t_repo_in);
+      git('git checkout -b '.$repo_out.' '.$remote_in.'/'.$repo_in, $return_var);
+      if($return_var){
+        error('Cannot checkout output repository!');
+      }
     }
   }
   else{
-    error('Cannot checkout output repository!');
+    reset($t_remotes);
+    list($remote_in, $t_repo_in) = each($t_remotes);
+    list($repo_in, ) = each($t_repo_in);
+    git('git checkout -b '.$repo_out.' '.$remote_in.'/'.$repo_in, $return_var);
+    if($return_var){
+      error('Cannot checkout output repository!');
+    }
   }
 }
 
