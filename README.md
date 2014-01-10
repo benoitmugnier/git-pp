@@ -12,6 +12,10 @@ Install
 ####Set the executable mode for user:  
     chmod g+x /usr/bin/git-pp  
 
+####Enable autocompletion (do not work with "git pp" syntax, use the alias "pp" instead):
+    ~$ vim .bashrc
+      alias pp='/usr/bin/git-pp'
+      complete -F _git_checkout pp
 
 Usage
 -----
