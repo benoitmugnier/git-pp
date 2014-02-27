@@ -8,11 +8,17 @@ if( strpos($repo_out, '/') !== FALSE ){
   list($remote_out, $repo_out) = explode('/', $repo_out);
 }
 
-if( $argc < 3 )
+$return_var = NULL;
+
+$options = getopt('o:r', Array('ref:','auto'));
+$strategy = array_key_exists('r', $options)?'rebase':'merge';
+$shortcut = array_key_exists('auto', $options)?(!empty($options['ref'])?$options['ref']:'origin'):FALSE;
+
+if( $argc < 3 && !$shortcut )
 {
   echo 'Usage : '.PHP_EOL;
-  echo ' git pp in out'.PHP_EOL;
-  echo ' git pp in [in [in [in ...]]] out'.PHP_EOL;
+  echo ' git push-pull in out'.PHP_EOL;
+  echo ' git push-pull in [in [in [in ...]]] out'.PHP_EOL;
   echo '    in, out : branch, remote/branch, remote/branch:hash'.PHP_EOL;
   die();
 }
@@ -21,6 +27,9 @@ if( $argc < 3 )
 $t_remotes = Array();
 foreach($argv as $arg)
 {
+  if( substr($arg, 0, 1) == '-'){
+    continue;
+  }
   $remote = NULL;
   $repo = trim($arg);
   if( strpos($arg, '/') !== FALSE ){
@@ -42,6 +51,12 @@ foreach($argv as $arg)
   }
 }
 
+if( $shortcut ){
+  $branch = git('git rev-parse --abbrev-ref HEAD', $return_var );
+  $remote_out = $shortcut;
+  $repo_out = $branch;
+  $t_remotes = Array( $shortcut => Array( $repo_out => Array() ) );
+}
 
 //Fetch remote repository
 foreach($t_remotes as $remote => $t_repo)
@@ -58,7 +73,6 @@ foreach($t_remotes as $remote => $t_repo)
 }
 
 
-$return_var = NULL;
 //Checkout local output repo
 git('git checkout '.$repo_out, $return_var);
 if($return_var)
@@ -80,7 +94,7 @@ if($return_var)
     reset($t_remotes);
     list($remote_in, $t_repo_in) = each($t_remotes);
     list($repo_in, ) = each($t_repo_in);
-    git('git checkout -b '.$repo_out.' '.($remote_in?$remote_in.'/':'').$repo_in, $return_var);
+    git('git checkout -b '.$repo_out.' '.($remote_in?$remote_in.'/':'').'/'.$repo_in, $return_var);
     if($return_var){
       error('Cannot checkout output repository!');
     }
@@ -95,9 +109,9 @@ foreach($t_remotes as $remote => $t_repo)
     if( !$commits )
     {
       //Merge Branch
-      git('git merge '.($remote?$remote.'/'.$repo:$repo), $return_var);  
+      git('git '.$strategy.' '.($remote?$remote.'/'.$repo:$repo), $return_var);  
       if($return_var){
-        error('Cannot merge '.$repo.' locally');
+        error('Cannot '.$strategy.' '.$repo.' locally');
       }
     }
     else 
