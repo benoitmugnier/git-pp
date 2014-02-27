@@ -51,3 +51,10 @@ Usage
 
 ####Merge of origin/qa + worker/feature + pickup local dev:COMMIT42 and push the result into origin/qa  
     bmu@test:~/dev/project$ git pp origin/qa worker/feature dev:COMMIT42 origin/qa  
+    
+Tips
+----
+####Fast forward mode
+Pull current branch from origin --ref (default --ref=origin) and push the result to origin.
+
+    bmu@test:~/dev/project$ git pp --auto 
